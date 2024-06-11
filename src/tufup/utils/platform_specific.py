@@ -12,8 +12,8 @@ from tufup.utils import remove_path
 logger = logging.getLogger(__name__)
 
 CURRENT_PLATFORM = platform.system()
-ON_WINDOWS = CURRENT_PLATFORM == 'Windows'
-ON_MAC = CURRENT_PLATFORM == 'Darwin'
+ON_WINDOWS = CURRENT_PLATFORM == "Windows"
+ON_MAC = CURRENT_PLATFORM == "Darwin"
 PLATFORM_SUPPORTED = ON_WINDOWS or ON_MAC
 
 
@@ -54,7 +54,7 @@ def install_update(
     elif ON_MAC:
         _install_update = _install_update_mac
     else:
-        raise RuntimeError('This platform is not supported.')
+        raise RuntimeError("This platform is not supported.")
     return _install_update(
         src_dir=src_dir,
         dst_dir=dst_dir,
@@ -72,13 +72,13 @@ call :log > "{log_file_path}" 2>&1
 :log
 """
 WIN_ROBOCOPY_OVERWRITE = (
-    '/e',  # include subdirectories, even if empty
-    '/move',  # deletes files and dirs from source dir after they've been copied
-    '/v',  # verbose (show what is going on)
-    '/w:2',  # set retry-timeout (default is 30 seconds)
+    "/e",  # include subdirectories, even if empty
+    "/move",  # deletes files and dirs from source dir after they've been copied
+    "/v",  # verbose (show what is going on)
+    "/w:2",  # set retry-timeout (default is 30 seconds)
 )
-WIN_ROBOCOPY_PURGE = '/purge'  # delete all files and dirs in destination folder
-WIN_ROBOCOPY_EXCLUDE_FROM_PURGE = '/xf'  # exclude specified paths from purge
+WIN_ROBOCOPY_PURGE = "/purge"  # delete all files and dirs in destination folder
+WIN_ROBOCOPY_EXCLUDE_FROM_PURGE = "/xf"  # exclude specified paths from purge
 # makes batch file delete itself when done (https://stackoverflow.com/a/20333575)
 WIN_BATCH_DELETE_SELF = '(goto) 2>nul & del "%~f0"'
 
@@ -92,8 +92,8 @@ robocopy "{src_dir}" "{dst_dir}" {robocopy_options}
 echo Done.
 {delete_self}
 """
-WIN_BATCH_PREFIX = 'tufup'
-WIN_BATCH_SUFFIX = '.bat'
+WIN_BATCH_PREFIX = "tufup"
+WIN_BATCH_SUFFIX = ".bat"
 
 
 def run_bat_as_admin(file_path: Union[pathlib.Path, str]):
@@ -109,16 +109,16 @@ def run_bat_as_admin(file_path: Union[pathlib.Path, str]):
     # https://docs.microsoft.com/en-us/windows/win32/api/shellapi/nf-shellapi-shellexecutew
     result = windll.shell32.ShellExecuteW(
         None,  # handle to parent window
-        'runas',  # verb
-        'cmd.exe',  # file on which verb acts
-        ' '.join(['/c', f'"{file_path}"']),  # parameters
+        "runas",  # verb
+        "cmd.exe",  # file on which verb acts
+        " ".join(["/c", f'"{file_path}"']),  # parameters
         None,  # working directory (default is cwd)
         1,  # show window normally
     )
     success = result > 32
     if not success:
         logger.error(
-            f'failed to run batch script as admin (ShellExecuteW returned {result})'
+            f"failed to run batch script as admin (ShellExecuteW returned {result})"
         )
     return success
 
@@ -188,13 +188,13 @@ def _install_update_win(
     else:
         # empty list [] simply clears all options
         robocopy_options = robocopy_options_override
-    options_str = ' '.join(robocopy_options)
+    options_str = " ".join(robocopy_options)
     # handle batch file output logging
-    log_lines = ''
+    log_lines = ""
     if log_file_name:
         log_file_path = pathlib.Path(dst_dir) / log_file_name
         log_lines = WIN_LOG_LINES.format(log_file_path=log_file_path)
-        logger.info(f'logging install script output to {log_file_path}')
+        logger.info(f"logging install script output to {log_file_path}")
     # write temporary batch file (NOTE: The file is placed in the system
     # default temporary dir, but the file is not removed automatically. So,
     # either the batch file should self-delete when done, or it should be
@@ -208,17 +208,17 @@ def _install_update_win(
         delete_self=WIN_BATCH_DELETE_SELF,
         **batch_template_extra_kwargs,
     )
-    logger.debug(f'writing windows batch script:\n{script_content}')
+    logger.debug(f"writing windows batch script:\n{script_content}")
     with NamedTemporaryFile(
-        mode='w', prefix=WIN_BATCH_PREFIX, suffix=WIN_BATCH_SUFFIX, delete=False
+        mode="w", prefix=WIN_BATCH_PREFIX, suffix=WIN_BATCH_SUFFIX, delete=False
     ) as temp_file:
         temp_file.write(script_content)
-    logger.debug(f'temporary batch script created: {temp_file.name}')
+    logger.debug(f"temporary batch script created: {temp_file.name}")
     script_path = pathlib.Path(temp_file.name).resolve()
-    logger.debug(f'starting script in new console: {script_path}')
+    logger.debug(f"starting script in new console: {script_path}")
     # start the script in a separate process, non-blocking
     if as_admin:
-        logger.debug('as admin')
+        logger.debug("as admin")
         run_bat_as_admin(file_path=script_path)
     else:
         # by default we create a new console with window, but user can override this
@@ -226,10 +226,10 @@ def _install_update_win(
         if process_creation_flags is None:
             process_creation_flags = subprocess.CREATE_NEW_CONSOLE
         else:
-            logger.debug('using custom process creation flags')
+            logger.debug("using custom process creation flags")
         # we use Popen() instead of run(), because the latter blocks execution
         subprocess.Popen([script_path], creationflags=process_creation_flags)
-    logger.debug('exiting')
+    logger.debug("exiting")
     # exit current process
     sys.exit(0)
 
@@ -242,26 +242,24 @@ def _install_update_mac(
     **kwargs,
 ):
     # todo: implement as_admin and debug kwargs for mac
-    logger.debug(f'Kwargs not used: {kwargs}')
+    logger.debug(f"Kwargs not used: {kwargs}")
     if purge_dst_dir:
         exclude_from_purge = (
-            [  # enforce path objects
-                pathlib.Path(item) for item in exclude_from_purge
-            ]
+            [pathlib.Path(item) for item in exclude_from_purge]  # enforce path objects
             if exclude_from_purge
             else []
         )
-        logger.debug(f'Purging content of {dst_dir}')
+        logger.debug(f"Purging content of {dst_dir}")
         for path in pathlib.Path(dst_dir).iterdir():
             if path not in exclude_from_purge:
                 remove_path(path=path)
-    logger.debug(f'Moving content of {src_dir} to {dst_dir}.')
-    shutil.copytree(src_dir, dst_dir, dirs_exist_ok=True)
+    logger.debug(f"Moving content of {src_dir} to {dst_dir}.")
+    shutil.copytree(src_dir, dst_dir, dirs_exist_ok=True, symlinks=True)
     # Note: the src_dir is typically a temporary directory, but we'll clear
     # it anyway just to be consistent with the windows implementation
     for path in pathlib.Path(src_dir).iterdir():
         remove_path(path=path)
-    logger.debug(f'Restarting application, running {sys.executable}.')
+    logger.debug(f"Restarting application, running {sys.executable}.")
     subprocess.Popen(sys.executable, shell=True)  # nosec
     sys.exit(0)
 
@@ -277,7 +275,7 @@ def _patched_resolve(path: pathlib.Path):
     todo: remove this as soon as support for python 3.9 is dropped
     """
     if ON_WINDOWS and sys.version_info[:2] < (3, 10):
-        logger.warning('using patched path for cpython #82852')
+        logger.warning("using patched path for cpython #82852")
         if not path.is_absolute():
             path = pathlib.Path.cwd() / path
     return path.resolve()

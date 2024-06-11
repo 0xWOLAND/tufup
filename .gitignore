@@ -8,5 +8,8 @@ examples/client/programs/
 examples/repo/keystore/
 examples/repo/repository/
 
+# virtualenv
+venv/
+
 # files
 .tufup-repo-config
